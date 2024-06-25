@@ -215,6 +215,13 @@ if(realsense2_FOUND)
     target_link_libraries(mono_realsense_D435i ${PROJECT_NAME})
 endif()
 
+#FTL examples
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/FTL)
+add_executable(mono_ftl
+        Examples/FTL/mono_ftl.cc)
+target_link_libraries(mono_ftl ${PROJECT_NAME})
+
+
 #Monocular inertial examples
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular-Inertial)
 
