@@ -75,8 +75,6 @@ void LoadImages(const std::string &databasePath,
 
 int main(int argc, char **argv)
 {
-    const int num_seq = (argc-3);
-    cout << "num_seq = " << num_seq << endl;
     /*bool bFileName= (((argc-3) % 2) == 1);
 
     std::string file_name;
@@ -89,37 +87,27 @@ int main(int argc, char **argv)
 
     if(argc < 3)
     {
-        cerr << endl << "Usage: ./mono_ftl path_to_vocabulary path_to_settings path_to_database_folder_1  (path_to_database_folder_2 ... path_to_database_folder_N) (trajectory_file_name)" << endl;
+        cerr << endl << "Usage: ./mono_ftl path_to_vocabulary path_to_settings path_to_database_folder" << endl;
         return 1;
     }
 
     // Load all sequences:
-    int seq;
-    std::vector< std::vector<std::string> > vstrImageFilenames;
-    std::vector< std::vector<double> > vTimestampsCam;
-    std::vector<int> nImages;
+    std::vector<std::string> vstrImageFilenames;
+    std::vector<double> vTimestampsCam;
 
-    vstrImageFilenames.resize(num_seq);
-    vTimestampsCam.resize(num_seq);
-    nImages.resize(num_seq);
+    std::cout << "Loading database...";
+    LoadImages(std::string(argv[3]), vstrImageFilenames, vTimestampsCam);
+    std::cout << "LOADED!" << endl;
 
-    int tot_images = 0;
-    for (seq = 0; seq<num_seq; seq++)
+    const int nImages = vstrImageFilenames.size();
+    const int tot_images = nImages;
+
+    if((nImages<=0))
     {
-        std::cout << "Loading database for sequence " << seq << "...";
-        LoadImages(std::string(argv[seq+3]), vstrImageFilenames[seq], vTimestampsCam[seq]);
-        std::cout << "LOADED!" << endl;
-
-        nImages[seq] = vstrImageFilenames[seq].size();
-        tot_images += nImages[seq];
-
-        if((nImages[seq]<=0))
-        {
-            std::cerr << "ERROR: Failed to load images for sequence" << seq << endl;
-            return 1;
-        }
-
+        std::cerr << "ERROR: Failed to load images " << endl;
+        return 1;
     }
+
     // Vector for tracking time statistics
     std::vector<float> vTimesTrack;
     vTimesTrack.resize(tot_images);
@@ -128,105 +116,94 @@ int main(int argc, char **argv)
     cout.precision(17);
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(argv[1],argv[2], ORB_SLAM3::System::MONOCULAR, true, 0);
+    const bool visualise = true;
+    ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualise, 0);
     float imageScale = SLAM.GetImageScale();
 
     double t_resize = 0.f;
     double t_track = 0.f;
     double ttrack_tot = 0;
-    
+
+    // Main loop
+    cv::Mat im;
     int proccIm = 0;
-    for (seq = 0; seq<num_seq; seq++)
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
+    for(int ni=0; ni<nImages; ni++, proccIm++)
     {
 
-        // Main loop
-        cv::Mat im;
-        proccIm = 0;
-        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
-        for(int ni=0; ni<nImages[seq]; ni++, proccIm++)
+        // Read image from file
+        im = cv::imread(vstrImageFilenames[ni],cv::IMREAD_GRAYSCALE); //,cv::IMREAD_GRAYSCALE);
+
+        if(imageScale != 1.f)
         {
-
-            // Read image from file
-            im = cv::imread(vstrImageFilenames[seq][ni],cv::IMREAD_GRAYSCALE); //,cv::IMREAD_GRAYSCALE);
-
-            if(imageScale != 1.f)
-            {
 #ifdef REGISTER_TIMES
-    #ifdef COMPILEDWITHC11
-                std::chrono::steady_clock::time_point t_Start_Resize = std::chrono::steady_clock::now();
-    #else
-                std::chrono::monotonic_clock::time_point t_Start_Resize = std::chrono::monotonic_clock::now();
-    #endif
-#endif
-                int width = im.cols * imageScale;
-                int height = im.rows * imageScale;
-                cv::resize(im, im, cv::Size(width, height));
-#ifdef REGISTER_TIMES
-    #ifdef COMPILEDWITHC11
-                std::chrono::steady_clock::time_point t_End_Resize = std::chrono::steady_clock::now();
-    #else
-                std::chrono::monotonic_clock::time_point t_End_Resize = std::chrono::monotonic_clock::now();
-    #endif
-                t_resize = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t_End_Resize - t_Start_Resize).count();
-                SLAM.InsertResizeTime(t_resize);
-#endif
-            }
-
-            // clahe
-            clahe->apply(im,im);
-
-
-            // cout << "mat type: " << im.type() << endl;
-            double tframe = vTimestampsCam[seq][ni];
-
-            if(im.empty())
-            {
-                cerr << endl << "Failed to load image at: "
-                     <<  vstrImageFilenames[seq][ni] << endl;
-                return 1;
-            }
 #ifdef COMPILEDWITHC11
-            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+            std::chrono::steady_clock::time_point t_Start_Resize = std::chrono::steady_clock::now();
 #else
-            std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
+            std::chrono::monotonic_clock::time_point t_Start_Resize = std::chrono::monotonic_clock::now();
+#endif
+#endif
+            int width = im.cols * imageScale;
+            int height = im.rows * imageScale;
+            cv::resize(im, im, cv::Size(width, height));
+#ifdef REGISTER_TIMES
+#ifdef COMPILEDWITHC11
+            std::chrono::steady_clock::time_point t_End_Resize = std::chrono::steady_clock::now();
+#else
+            std::chrono::monotonic_clock::time_point t_End_Resize = std::chrono::monotonic_clock::now();
+#endif
+            t_resize = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t_End_Resize - t_Start_Resize).count();
+            SLAM.InsertResizeTime(t_resize);
+#endif
+        }
+
+        // clahe
+        clahe->apply(im,im);
+
+
+        // cout << "mat type: " << im.type() << endl;
+        double tframe = vTimestampsCam[ni];
+
+        if(im.empty())
+        {
+            cerr << endl << "Failed to load image at: "
+                    <<  vstrImageFilenames[ni] << endl;
+            return 1;
+        }
+#ifdef COMPILEDWITHC11
+        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+#else
+        std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
-            // Pass the image to the SLAM system
-            SLAM.TrackMonocular(im,tframe); // TODO change to monocular_inertial
+        // Pass the image to the SLAM system
+        SLAM.TrackMonocular(im,tframe); // TODO change to monocular_inertial
 
 #ifdef COMPILEDWITHC11
-            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 #else
-            std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
+        std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
 #endif
 
 #ifdef REGISTER_TIMES
-            t_track = t_resize + std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-            SLAM.InsertTrackTime(t_track);
+        t_track = t_resize + std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+        SLAM.InsertTrackTime(t_track);
 #endif
 
-            double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
-            ttrack_tot += ttrack;
+        double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+        ttrack_tot += ttrack;
 
-            vTimesTrack[ni]=ttrack;
+        vTimesTrack[ni]=ttrack;
 
-            // Wait to load the next frame
-            double T=0;
-            if(ni<nImages[seq]-1)
-                T = vTimestampsCam[seq][ni+1]-tframe;
-            else if(ni>0)
-                T = tframe-vTimestampsCam[seq][ni-1];
+        // Wait to load the next frame
+        double T=0;
+        if(ni<nImages-1)
+            T = vTimestampsCam[ni+1]-tframe;
+        else if(ni>0)
+            T = tframe-vTimestampsCam[ni-1];
 
-            if(ttrack<T)
-                usleep((T-ttrack)*1e6); // 1e6
-
-        }
-        if(seq < num_seq - 1)
-        {
-            cout << "Changing the dataset" << endl;
-
-            SLAM.ChangeDataset();
-        }
+        if(ttrack<T)
+            usleep((T-ttrack)*1e6); // 1e6
 
     }
 
@@ -254,12 +231,12 @@ int main(int argc, char **argv)
 
     std::sort(vTimesTrack.begin(),vTimesTrack.end());
     float totaltime = 0;
-    for(int ni=0; ni<nImages[0]; ni++)
+    for(int ni=0; ni<nImages; ni++)
     {
         totaltime+=vTimesTrack[ni];
     }
     std::cout << "-------" << std::endl << std::endl;
-    std::cout << "median tracking time: " << vTimesTrack[nImages[0]/2] << std::endl;
+    std::cout << "median tracking time: " << vTimesTrack[nImages/2] << std::endl;
     std::cout << "mean tracking time: " << totaltime/proccIm << std::endl;
 
 
