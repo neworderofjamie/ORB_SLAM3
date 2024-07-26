@@ -10,6 +10,7 @@ from glob import glob
 assert len(sys.argv) > 1
 
 out_size = int(sys.argv[2] if len(sys.argv) > 2 else 512)
+out_fov_degree = float(sys.argv[3] if len(sys.argv) > 3 else 120.0)
 
 # Load calibration data
 calibration = np.load("calibration.npz")
@@ -19,9 +20,13 @@ omni_d = calibration["d"]
 
 rotation = Rotation.from_euler("zx", [180.0, 30], degrees=True).as_matrix()
 
-k_out = np.asarray([[out_size / 4,  0,              out_size / 2],
-                    [0,             out_size / 4,   out_size / 2],
-                    [0,              0,             1]])
+out_fov_pixels = (out_size / 2.0) / np.tan(np.radians(out_fov_degree / 2.0))
+k_out = np.asarray([[out_fov_pixels,  0,                out_size / 2],
+                    [0,               out_fov_pixels,   out_size / 2],
+                    [0,               0,                1]])
+
+
+print(f"Fx={k_out[0,0]}, Fy={k_out[1,1]}, Cx={k_out[0,2]}, Cx={k_out[1,2]}")
 
 # Loop through files
 for f in glob(os.path.join(sys.argv[1], "*.jpg")):

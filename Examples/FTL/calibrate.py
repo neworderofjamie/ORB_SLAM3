@@ -103,10 +103,14 @@ else:
     omni_d = np.asarray([[-0.12039939, 0.00880851, 0.00033161, 0.00195181]])
     """
 
-OUT_SIZE = (512, 512)
-K_OUT = np.asarray([[OUT_SIZE[0] / 4,   0,                  OUT_SIZE[0] / 2],
-                    [0,                 OUT_SIZE[1] / 4,    OUT_SIZE[1] / 2],
-                    [0,                 0,                  1]])
+OUT_SIZE = 512
+OUT_FOV_DEGREES = 120.0
+
+OUT_FOV_PIXELS = (OUT_SIZE / 2.0) / np.tan(np.radians(OUT_FOV_DEGREES / 2.0))
+
+K_OUT = np.asarray([[OUT_FOV_PIXELS,    0,              OUT_SIZE / 2],
+                    [0,                 OUT_FOV_PIXELS,  OUT_SIZE / 2],
+                    [0,                 0,              1]])
 while True:
     # Read frame
     ret, frame = vid.read()
@@ -124,7 +128,7 @@ while True:
     #rotation = Rotation.from_euler(axes[axis], angle, degrees=True)
     rotation = Rotation.from_euler("zx", [180.0, 30], degrees=True)
     dst_omni = cv2.omnidir.undistortImage(frame, omni_k, omni_d, omni_xi, cv2.omnidir.RECTIFY_PERSPECTIVE,
-                                          Knew=K_OUT, new_size=OUT_SIZE, R=rotation.as_matrix())
+                                          Knew=K_OUT, new_size=(OUT_SIZE, OUT_SIZE), R=rotation.as_matrix())
     
     #cv2.putText(dst_omni, f"{axes[axis]} {angle}", (0,20), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,0,0))
     cv2.imshow("unwrapped", frame)
