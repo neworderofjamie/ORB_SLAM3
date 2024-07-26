@@ -1,0 +1,17 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "FTL Test C++ Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Examples/FTL/mono_ftl",
+            "args": ["../../Vocabulary/ORBvoc.txt", "FTLTest.yaml", "/mnt/data0/jk421/ftl_slam/training/"],
+            "cwd": "${workspaceFolder}/Examples/FTL/"
+          }
+    ]  
+
+}
