@@ -11,6 +11,14 @@
             "program": "${workspaceFolder}/Examples/FTL/mono_ftl",
             "args": ["../../Vocabulary/ORBvoc.txt", "FTLTest.yaml", "/mnt/data0/jk421/ftl_slam/training/"],
             "cwd": "${workspaceFolder}/Examples/FTL/"
+          },
+          {
+            "name": "FTL Train C++ Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Examples/FTL/mono_ftl",
+            "args": ["../../Vocabulary/ORBvoc.txt", "FTLTrain.yaml", "/mnt/data0/jk421/ftl_slam/training/"],
+            "cwd": "${workspaceFolder}/Examples/FTL/"
           }
     ]  
 
