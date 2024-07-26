@@ -28,6 +28,9 @@ else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
+# Code base is a warning hell-hole. Turn off some that are bad style but probably not the cause of bugs
+add_compile_options(-Wno-reorder -Wno-deprecated -Wno-deprecated-declarations -Wno-unused-but-set-variable -Wno-unused-variable -Wno-sign-compare -Wno-dangling-else)
+
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
 find_package(OpenCV 4.4)
